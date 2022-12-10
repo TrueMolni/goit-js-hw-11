@@ -68,7 +68,7 @@ const render = () => {
 const queryHandle = event => {
   // const { value } = event.target.elements.searchQuery;
   userQuery = event.target.value.trim();
-  console.log(userQuery);
+  render();
 };
 
 const submitHandle = event => {
@@ -83,8 +83,46 @@ const submitHandle = event => {
     .then(hits => {
       items = hits;
       render();
+      createGallery();
     });
 };
+
+// створення шаблону розмітки списку країн
+const getItemTemplate = ({
+  webformatURL,
+  largeImageURL,
+  tags,
+  likes,
+  views,
+  comments,
+  downloads,
+}) =>
+  `
+  <div class="photo-card">
+  <img class ="photo-image" src=${webformatURL} alt=${tags} loading="lazy" />
+  <div class="info">
+    <p class="info-item">
+      <b>Likes</b> ${likes}
+    </p>
+    <p class="info-item">
+      <b>Views</b> ${views}
+    </p>
+    <p class="info-item">
+      <b>Comments</b> ${comments}
+    </p>
+    <p class="info-item">
+      <b>Downloads</b> ${downloads}
+    </p>
+  </div>
+</div>
+`;
+
+function createGallery() {
+  const markup = items.map(getItemTemplate);
+  render();
+  refs.galleryRef.insertAdjacentHTML('beforeend', markup.join(''));
+}
+
 // підписуємось на слухача події інпуту, для опрацювання тексту користувача
 refs.queryRef.addEventListener('input', queryHandle);
 refs.submitBtnRef.addEventListener('click', submitHandle);
