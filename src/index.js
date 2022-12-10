@@ -62,6 +62,8 @@ const options = {
 // comments - кількість коментарів.
 // downloads - кількість завантажень.
 
+refs.loadMoreBtnRef.setAttribute('disabled', true);
+
 const render = () => {
   console.log(items);
 
@@ -92,6 +94,7 @@ const submitHandle = async event => {
       }
 
       createGallery();
+      refs.loadMoreBtnRef.removeAttribute('disabled');
       ifSuccess();
     });
 };
@@ -108,7 +111,9 @@ const getItemTemplate = ({
 }) =>
   `
   <div class="photo-card">
+  <a class="gallery__item" href="${largeImageURL}">
   <img class ="photo-image" src=${webformatURL} alt=${tags} loading="lazy" />
+  </a>
   <div class="info">
     <p class="info-item">
       <b>Likes</b> ${likes}
@@ -132,6 +137,11 @@ function createGallery() {
 }
 
 const loadMoreHandle = async () => {
+  if (items.length === 0) {
+    refs.loadMoreBtnRef.setAttribute('disabled', true);
+    return ifError();
+  }
+
   page += 1;
   await axios
     .get(
@@ -162,6 +172,12 @@ function ifSuccess() {
 function ifError() {
   Notify.failure('Oops, there are no images to search.');
 }
+
+const lightbox = new SimpleLightbox('.gallery a', {
+  captionsData: 'alt',
+  captionDelay: 250,
+  scrollZoom: false,
+});
 
 /*
 import './css/styles.css';
