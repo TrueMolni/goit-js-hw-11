@@ -22,12 +22,13 @@ console.log(refs);
 //глобальні змінні
 let userQuery = '';
 let items = [];
-const PIXABAY_KEY = '31908525-c153f8ff1cbf36c0ec126789f';
-const PIXABAY_ID = 31908525;
+let page = 1;
+let perPage = 16;
 
-URL =
-  'https://pixabay.com/api/?key=31908525-c153f8ff1cbf36c0ec126789f&q=yellow+flowers&image_type=photo&orientation=horizontal&safesearch=true';
+const PIXABAY_KEY = '31908525-c153f8ff1cbf36c0ec126789f';
+
 const BASE_URL = 'https://pixabay.com/api/';
+const PAGINATION = `page=${page}&per_page=${perPage}`;
 
 // параметри для запиту до API
 
@@ -37,6 +38,8 @@ const options = {
   // image_type, // - тип зображення. На потрібні тільки фотографії, тому постав значення photo.
   //  orientation, // - орієнтація фотографії. Постав значення horizontal.
   // safesearch, // - фільтр за віком. Постав значення true.'
+  // page - параметр вказує на сторінку запитів,
+  // per_page - вказує на кількість запитів за сторінку
   // {
   //       webformatURL,
   //       largeImageURL,
@@ -66,24 +69,30 @@ const render = () => {
 };
 
 const queryHandle = event => {
-  // const { value } = event.target.elements.searchQuery;
   userQuery = event.target.value.trim();
-  render();
 };
 
-const submitHandle = event => {
+const submitHandle = async event => {
   event.preventDefault();
+  page = 1;
 
-  axios
+  await axios
     .get(
-      `${BASE_URL}?key=${PIXABAY_KEY}&q=${userQuery}&image_type=photo&orientation=horizontal&safesearch=true`
+      `${BASE_URL}?key=${PIXABAY_KEY}&q=${userQuery}&page=${page}&per_page=${perPage}&image_type=photo&orientation=horizontal&safesearch=true`
     )
     .then(({ data }) => data)
     .then(({ hits }) => hits)
     .then(hits => {
       items = hits;
       render();
+
+      if (userQuery === '' || items.length === 0) {
+        render();
+        return ifError();
+      }
+
       createGallery();
+      ifSuccess();
     });
 };
 
@@ -119,21 +128,39 @@ const getItemTemplate = ({
 
 function createGallery() {
   const markup = items.map(getItemTemplate);
-  render();
   refs.galleryRef.insertAdjacentHTML('beforeend', markup.join(''));
 }
+
+const loadMoreHandle = async () => {
+  page += 1;
+  await axios
+    .get(
+      `${BASE_URL}?key=${PIXABAY_KEY}&q=${userQuery}&page=${page}&per_page=${perPage}&image_type=photo&orientation=horizontal&safesearch=true`
+    )
+    .then(({ data }) => data)
+    .then(({ hits }) => hits)
+    .then(hits => {
+      items = hits;
+    });
+
+  createGallery();
+};
 
 // підписуємось на слухача події інпуту, для опрацювання тексту користувача
 refs.queryRef.addEventListener('input', queryHandle);
 refs.submitBtnRef.addEventListener('click', submitHandle);
+refs.loadMoreBtnRef.addEventListener('click', loadMoreHandle);
 
 // axios.get('/users').then(res => {
 //   console.log(res.data);
 // });
 
-Notify.info('Too many matches found. Please enter a more specific name.');
+function ifSuccess() {
+  Notify.success('Success! Here the results of your query :');
+}
+
 function ifError() {
-  Notify.failure('Oops, there is no country with that name.');
+  Notify.failure('Oops, there are no images to search.');
 }
 
 /*
