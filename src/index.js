@@ -61,6 +61,11 @@ const options = {
 // views - кількість переглядів.
 // comments - кількість коментарів.
 // downloads - кількість завантажень.
+const lightbox = new SimpleLightbox('.gallery a', {
+  captionsData: 'alt',
+  captionDelay: 250,
+  scrollZoom: false,
+});
 
 refs.loadMoreBtnRef.setAttribute('disabled', true);
 
@@ -94,6 +99,7 @@ const submitHandle = async event => {
       }
 
       createGallery();
+      lightbox.refresh();
       refs.loadMoreBtnRef.removeAttribute('disabled');
       ifSuccess();
     });
@@ -111,7 +117,7 @@ const getItemTemplate = ({
 }) =>
   `
   <div class="photo-card">
-  <a class="gallery__item" href="${largeImageURL}">
+  <a href="${largeImageURL}">
   <img class ="photo-image" src=${webformatURL} alt=${tags} loading="lazy" />
   </a>
   <div class="info">
@@ -172,12 +178,6 @@ function ifSuccess() {
 function ifError() {
   Notify.failure('Oops, there are no images to search.');
 }
-
-const lightbox = new SimpleLightbox('.gallery a', {
-  captionsData: 'alt',
-  captionDelay: 250,
-  scrollZoom: false,
-});
 
 /*
 import './css/styles.css';
