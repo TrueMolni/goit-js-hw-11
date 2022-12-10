@@ -22,11 +22,11 @@ console.log(refs);
 //глобальні змінні
 let userQuery = '';
 let items = [];
-const PIXABAY_KEY = 'c153f8ff1cbf36c0ec126789f';
+const PIXABAY_KEY = '31908525-c153f8ff1cbf36c0ec126789f';
 const PIXABAY_ID = 31908525;
 
 URL =
-  'https://pixabay.com/api/?key=31908525-c153f8ff1cbf36c0ec126789f&q=yellow+flowers&image_type=photo';
+  'https://pixabay.com/api/?key=31908525-c153f8ff1cbf36c0ec126789f&q=yellow+flowers&image_type=photo&orientation=horizontal&safesearch=true';
 const BASE_URL = 'https://pixabay.com/api/';
 
 // параметри для запиту до API
@@ -36,7 +36,16 @@ const options = {
   // q, // - термін для пошуку. Те, що буде вводити користувач.
   // image_type, // - тип зображення. На потрібні тільки фотографії, тому постав значення photo.
   //  orientation, // - орієнтація фотографії. Постав значення horizontal.
-  // safesearch, // - фільтр за віком. Постав значення true.
+  // safesearch, // - фільтр за віком. Постав значення true.'
+  // {
+  //       webformatURL,
+  //       largeImageURL,
+  //       tags,
+  //       likes,
+  //       views,
+  //       comments,
+  //       downloads,
+  //     }
 };
 
 // У відповіді буде масив зображень, що задовольнили критерії параметрів запиту.
@@ -67,11 +76,13 @@ const submitHandle = event => {
 
   axios
     .get(
-      `${BASE_URL}?key=${PIXABAY_ID}-${PIXABAY_KEY}&q=${userQuery}&image_type=photo`
+      `${BASE_URL}?key=${PIXABAY_KEY}&q=${userQuery}&image_type=photo&orientation=horizontal&safesearch=true`
     )
     .then(({ data }) => data)
-    .then(({ hits }) => {
-      console.log(hits);
+    .then(({ hits }) => hits)
+    .then(hits => {
+      items = hits;
+      render();
     });
 };
 // підписуємось на слухача події інпуту, для опрацювання тексту користувача
