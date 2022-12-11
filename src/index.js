@@ -30,37 +30,6 @@ const PIXABAY_KEY = '31908525-c153f8ff1cbf36c0ec126789f';
 const BASE_URL = 'https://pixabay.com/api/';
 const PAGINATION = `page=${page}&per_page=${perPage}`;
 
-// параметри для запиту до API
-
-const options = {
-  // key, // - твій унікальний ключ доступу до API.
-  // q, // - термін для пошуку. Те, що буде вводити користувач.
-  // image_type, // - тип зображення. На потрібні тільки фотографії, тому постав значення photo.
-  //  orientation, // - орієнтація фотографії. Постав значення horizontal.
-  // safesearch, // - фільтр за віком. Постав значення true.'
-  // page - параметр вказує на сторінку запитів,
-  // per_page - вказує на кількість запитів за сторінку
-  // {
-  //       webformatURL,
-  //       largeImageURL,
-  //       tags,
-  //       likes,
-  //       views,
-  //       comments,
-  //       downloads,
-  //     }
-};
-
-// У відповіді буде масив зображень, що задовольнили критерії параметрів запиту.
-// Кожне зображення описується об'єктом, з якого тобі цікаві тільки наступні властивості:
-
-// webformatURL - посилання на маленьке зображення для списку карток.
-// largeImageURL - посилання на велике зображення.
-// tags - рядок з описом зображення. Підійде для атрибуту alt.
-// likes - кількість лайків.
-// views - кількість переглядів.
-// comments - кількість коментарів.
-// downloads - кількість завантажень.
 const lightbox = new SimpleLightbox('.gallery a', {
   captionsData: 'alt',
   captionDelay: 250,
@@ -105,7 +74,7 @@ const submitHandle = async event => {
     });
 };
 
-// створення шаблону розмітки списку країн
+// створення шаблону розмітки карток галереї
 const getItemTemplate = ({
   webformatURL,
   largeImageURL,
@@ -117,9 +86,11 @@ const getItemTemplate = ({
 }) =>
   `
   <div class="photo-card">
+  <div class="wrapper">
   <a href="${largeImageURL}">
   <img class ="photo-image" src=${webformatURL} alt=${tags} loading="lazy" />
   </a>
+  </div>
   <div class="info">
     <p class="info-item">
       <b>Likes</b> ${likes}
@@ -160,16 +131,23 @@ const loadMoreHandle = async () => {
     });
 
   createGallery();
+  await scroll();
 };
+
+function scroll() {
+  const { height: cardHeight } =
+    refs.galleryRef.firstElementChild.getBoundingClientRect();
+
+  window.scrollBy({
+    top: cardHeight * 2,
+    behavior: 'smooth',
+  });
+}
 
 // підписуємось на слухача події інпуту, для опрацювання тексту користувача
 refs.queryRef.addEventListener('input', queryHandle);
 refs.submitBtnRef.addEventListener('click', submitHandle);
 refs.loadMoreBtnRef.addEventListener('click', loadMoreHandle);
-
-// axios.get('/users').then(res => {
-//   console.log(res.data);
-// });
 
 function ifSuccess() {
   Notify.success('Success! Here the results of your query :');
@@ -178,6 +156,36 @@ function ifSuccess() {
 function ifError() {
   Notify.failure('Oops, there are no images to search.');
 }
+
+// параметри для запиту до API
+
+// key, // - твій унікальний ключ доступу до API.
+// q, // - термін для пошуку. Те, що буде вводити користувач.
+// image_type, // - тип зображення. На потрібні тільки фотографії, тому постав значення photo.
+//  orientation, // - орієнтація фотографії. Постав значення horizontal.
+// safesearch, // - фільтр за віком. Постав значення true.'
+// page - параметр вказує на сторінку запитів,
+// per_page - вказує на кількість запитів за сторінку
+// {
+//       webformatURL,
+//       largeImageURL,
+//       tags,
+//       likes,
+//       views,
+//       comments,
+//       downloads,
+//     }
+
+// У відповіді буде масив зображень, що задовольнили критерії параметрів запиту.
+// Кожне зображення описується об'єктом, з якого тобі цікаві тільки наступні властивості:
+
+// webformatURL - посилання на маленьке зображення для списку карток.
+// largeImageURL - посилання на велике зображення.
+// tags - рядок з описом зображення. Підійде для атрибуту alt.
+// likes - кількість лайків.
+// views - кількість переглядів.
+// comments - кількість коментарів.
+// downloads - кількість завантажень.
 
 /*
 import './css/styles.css';
