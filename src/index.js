@@ -5,7 +5,6 @@ import SimpleLightbox from 'simplelightbox';
 import 'simplelightbox/dist/simple-lightbox.min.css';
 import { Notify } from 'notiflix';
 import axios from 'axios';
-
 // імпорти
 
 // посилання на елементи DOM
@@ -17,58 +16,71 @@ const refs = {
   loadMoreBtnRef: document.querySelector('.load-more'),
 };
 
-console.log(refs);
-
 //глобальні змінні
 let userQuery = '';
 let items = [];
 let page = 1;
 let perPage = 16;
+let total;
 
 const PIXABAY_KEY = '31908525-c153f8ff1cbf36c0ec126789f';
-
 const BASE_URL = 'https://pixabay.com/api/';
-const PAGINATION = `page=${page}&per_page=${perPage}`;
 
+//лайтбокс для модального вікна з великим зображенням
 const lightbox = new SimpleLightbox('.gallery a', {
   captionsData: 'alt',
   captionDelay: 250,
   scrollZoom: false,
 });
 
+// ховаємо і вимикаємо кнопку "прогрузити ще"
 refs.loadMoreBtnRef.setAttribute('disabled', true);
+refs.loadMoreBtnRef.classList.toggle('visually-hidden');
 
+// стрілочна функція для перезагрузки кнонтенту галереї
 const render = () => {
   console.log(items);
 
   refs.galleryRef.innerHTML = '';
 };
 
+// оброблюємо і записуємо у змінну пошук користувача
 const queryHandle = event => {
   userQuery = event.target.value.trim();
 };
 
+// посилаємо запит для отримання даних для галереї карток
 const submitHandle = async event => {
   event.preventDefault();
   page = 1;
 
+  // тут робиться весь запит користувача. Записуємо усі дані та
+  // додатково записуємо кількість знайдених об'єктів у глобальну змінну
   await axios
     .get(
       `${BASE_URL}?key=${PIXABAY_KEY}&q=${userQuery}&page=${page}&per_page=${perPage}&image_type=photo&orientation=horizontal&safesearch=true`
     )
     .then(({ data }) => data)
-    .then(({ hits }) => hits)
+    .then(({ totalHits, hits }) => {
+      total = totalHits;
+      return hits;
+    })
     .then(hits => {
       items = hits;
       render();
 
+      // якщо нічого не знайшли, або запит користувача порожній
+      // спорожнюємо розмітку та виводимо повідомлення про невдачу
       if (userQuery === '' || items.length === 0) {
         render();
         return ifError();
       }
 
+      // cтворення галереї, запуск лайтбоксу, показуємо кнопку прогрузити ще
+      // та показуємо повідомлення про успішність запиту
       createGallery();
       lightbox.refresh();
+      refs.loadMoreBtnRef.classList.toggle('visually-hidden');
       refs.loadMoreBtnRef.removeAttribute('disabled');
       ifSuccess();
     });
@@ -108,14 +120,18 @@ const getItemTemplate = ({
 </div>
 `;
 
+// ф-ія для створення розмітки глаереї карток
 function createGallery() {
   const markup = items.map(getItemTemplate);
   refs.galleryRef.insertAdjacentHTML('beforeend', markup.join(''));
 }
 
+// обробка запиту користувача для довантаження додаткових карток
 const loadMoreHandle = async () => {
+  // якщо нема даних для довантаження ховаэмо кнопку і виводимо повідомлення
   if (items.length === 0) {
     refs.loadMoreBtnRef.setAttribute('disabled', true);
+    refs.loadMoreBtnRef.classList.toggle('visually-hidden');
     return ifError();
   }
 
@@ -130,10 +146,13 @@ const loadMoreHandle = async () => {
       items = hits;
     });
 
+  // якщо запит успішний додаємо до розмітки карток без її очищення
+  // скролимо до нових карток
   createGallery();
   await scroll();
 };
 
+// опрацьовуємо скрол при довантаженні карток
 function scroll() {
   const { height: cardHeight } =
     refs.galleryRef.firstElementChild.getBoundingClientRect();
@@ -145,148 +164,16 @@ function scroll() {
 }
 
 // підписуємось на слухача події інпуту, для опрацювання тексту користувача
+// а також до кнопок, для опрацьовування їх подій
 refs.queryRef.addEventListener('input', queryHandle);
 refs.submitBtnRef.addEventListener('click', submitHandle);
 refs.loadMoreBtnRef.addEventListener('click', loadMoreHandle);
 
+// ці ф-ії виводять повідомлення про успіх чи невдачу
 function ifSuccess() {
-  Notify.success('Success! Here the results of your query :');
+  Notify.success(`Hooray! We found ${total} images.`);
 }
 
 function ifError() {
-  Notify.failure('Oops, there are no images to search.');
+  Notify.failure("We're sorry, but you've reached the end of search results.");
 }
-
-// параметри для запиту до API
-
-// key, // - твій унікальний ключ доступу до API.
-// q, // - термін для пошуку. Те, що буде вводити користувач.
-// image_type, // - тип зображення. На потрібні тільки фотографії, тому постав значення photo.
-//  orientation, // - орієнтація фотографії. Постав значення horizontal.
-// safesearch, // - фільтр за віком. Постав значення true.'
-// page - параметр вказує на сторінку запитів,
-// per_page - вказує на кількість запитів за сторінку
-// {
-//       webformatURL,
-//       largeImageURL,
-//       tags,
-//       likes,
-//       views,
-//       comments,
-//       downloads,
-//     }
-
-// У відповіді буде масив зображень, що задовольнили критерії параметрів запиту.
-// Кожне зображення описується об'єктом, з якого тобі цікаві тільки наступні властивості:
-
-// webformatURL - посилання на маленьке зображення для списку карток.
-// largeImageURL - посилання на велике зображення.
-// tags - рядок з описом зображення. Підійде для атрибуту alt.
-// likes - кількість лайків.
-// views - кількість переглядів.
-// comments - кількість коментарів.
-// downloads - кількість завантажень.
-
-/*
-import './css/styles.css';
-import { fetchCountries } from './fetchCountries';
-import debounce from 'lodash.debounce';
-
-
-//глобальні змінні
-const DEBOUNCE_DELAY = 300;
-let userQuery = '';
-let items = [];
-
-
-// оновлює розмітку
-const render = () => {
-  console.log(items);
-
-  refs.listRef.innerHTML = '';
-  refs.infoRef.innerHTML = '';
-};
-
-// опрацьовуємо текст користувача і чистимо розмітку, якщо порожньо
-const queryHandle = event => {
-  userQuery = event.target.value.trim();
-  if (userQuery === '') {
-    render();
-    return;
-  }
-
-  // опрацьовуємо запит, в залежності від розміру вхідних робимо розмітку інфо про одну країу, про список країн
-  // викликаємо помилку, якщо запит повернув 404(якщо немає змінних для розмітки)
-  fetchCountries(userQuery)
-    .then(data => {
-      items = data;
-      render();
-
-      if (!items[0].flags) {
-        throw new Error();
-      }
-
-      if (items.length > 10) {
-        return Notify.info(
-          'Too many matches found. Please enter a more specific name.'
-        );
-      }
-
-      if (items.length === 1) {
-        createInfo();
-      } else if (items.length >= 1 && items.length <= 10) {
-        createList();
-      }
-    })
-    .catch(ifError);
-};
-
-// підписуємось на слухача події інпуту, для опрацювання тексту користувача
-refs.queryRef.addEventListener('input', debounce(queryHandle, DEBOUNCE_DELAY));
-
-// створення шаблону розмітки списку країн
-const getItemTemplate = ({ flags, name }) =>
-  `
-  <li style=" display: flex; margin: 5px;
-}">
-    <img src=${flags.svg} alt="flag" style=" width: 90px;" />
-    <p style=" padding: 5px;">${name.official}</p>
-  </li>
-</ul>
-`;
-
-// створення шаблону розмітки контейнеру даних про одну країну
-const getInfoTemplate = ({ name, population, capital, flags }) => {
-  const lang = Object.values(items[0].languages).join(', ');
-  return `
-<div>
-  <img src=${flags.svg} alt="flag" style=" width: 400px;"/>
-  <h1>${name.official}</h1>
-  <h2>Population: ${population}</h2>
-  <h2>Capital: ${capital}</h2>
-  <h2>Languages: ${lang}</h2>
-</div>
-`;
-};
-
-// створємо розмітку елементів списку країн на основі шаблону і виводимо на екран
-function createList() {
-  const markup = items.map(getItemTemplate);
-  render();
-  refs.listRef.insertAdjacentHTML('beforeend', markup.join(''));
-}
-
-// створємо розмітку контейнеру однієї  країни на основі шаблону і виводимо на екран цю країну
-function createInfo() {
-  const markup = items.map(getInfoTemplate);
-  render();
-  refs.infoRef.insertAdjacentHTML('beforeend', markup.join(''));
-}
-
-// якщо ми отримали помилку, виводимо повідомлення через бібліотеку Notify
-function ifError() {
-  render();
-  Notify.failure('Oops, there is no country with that name.');
-}
-
-*/
