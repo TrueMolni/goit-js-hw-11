@@ -20,7 +20,7 @@ const refs = {
 let userQuery = '';
 let items = [];
 let page = 1;
-let perPage = 16;
+let perPage = 40;
 let total;
 
 const PIXABAY_KEY = '31908525-c153f8ff1cbf36c0ec126789f';
@@ -49,41 +49,52 @@ const queryHandle = event => {
   userQuery = event.target.value.trim();
 };
 
+const getData = async () => {
+  const { data } = await axios.get(
+    `${BASE_URL}?key=${PIXABAY_KEY}&q=${userQuery}&page=${page}&per_page=${perPage}&image_type=photo&orientation=horizontal&safesearch=true`
+  );
+  const { hits, totalHits } = await data;
+  total = totalHits;
+  items = hits;
+};
+
 // посилаємо запит для отримання даних для галереї карток
 const submitHandle = async event => {
   event.preventDefault();
+  if (refs.queryRef.value === '') {
+    render();
+    refs.loadMoreBtnRef.classList.add('visually-hidden');
+    refs.loadMoreBtnRef.setAttribute('disabled', true);
+    return Notify.failure(' WRONG query');
+  }
   page = 1;
 
+  if (userQuery === '') {
+    render();
+    refs.formRef.reset();
+    return Notify.failure(' WRONG query');
+  }
   // тут робиться весь запит користувача. Записуємо усі дані та
   // додатково записуємо кількість знайдених об'єктів у глобальну змінну
-  await axios
-    .get(
-      `${BASE_URL}?key=${PIXABAY_KEY}&q=${userQuery}&page=${page}&per_page=${perPage}&image_type=photo&orientation=horizontal&safesearch=true`
-    )
-    .then(({ data }) => data)
-    .then(({ totalHits, hits }) => {
-      total = totalHits;
-      return hits;
-    })
-    .then(hits => {
-      items = hits;
-      render();
+  await getData();
+  if (items.length === 0) {
+    refs.formRef.reset();
+    render();
+    return ifError;
+  }
 
-      // якщо нічого не знайшли, або запит користувача порожній
-      // спорожнюємо розмітку та виводимо повідомлення про невдачу
-      if (userQuery === '' || items.length === 0) {
-        render();
-        return ifError();
-      }
+  render();
+  createGallery();
+  lightbox.refresh();
+  ifSuccess();
+  refs.formRef.reset();
+  if (total < 40) {
+    userQuery = '';
+    return;
+  }
 
-      // cтворення галереї, запуск лайтбоксу, показуємо кнопку прогрузити ще
-      // та показуємо повідомлення про успішність запиту
-      createGallery();
-      lightbox.refresh();
-      refs.loadMoreBtnRef.classList.toggle('visually-hidden');
-      refs.loadMoreBtnRef.removeAttribute('disabled');
-      ifSuccess();
-    });
+  refs.loadMoreBtnRef.classList.toggle('visually-hidden');
+  refs.loadMoreBtnRef.removeAttribute('disabled');
 };
 
 // створення шаблону розмітки карток галереї
@@ -129,26 +140,24 @@ function createGallery() {
 // обробка запиту користувача для довантаження додаткових карток
 const loadMoreHandle = async () => {
   // якщо нема даних для довантаження ховаэмо кнопку і виводимо повідомлення
-  if (items.length === 0) {
-    refs.loadMoreBtnRef.setAttribute('disabled', true);
-    refs.loadMoreBtnRef.classList.toggle('visually-hidden');
-    return ifError();
-  }
 
   page += 1;
-  await axios
-    .get(
-      `${BASE_URL}?key=${PIXABAY_KEY}&q=${userQuery}&page=${page}&per_page=${perPage}&image_type=photo&orientation=horizontal&safesearch=true`
-    )
-    .then(({ data }) => data)
-    .then(({ hits }) => hits)
-    .then(hits => {
-      items = hits;
-    });
+  await getData();
+  console.log(items);
 
   // якщо запит успішний додаємо до розмітки карток без її очищення
   // скролимо до нових карток
   createGallery();
+  lightbox.refresh();
+
+  if (page >= total / 40) {
+    Notify.info("We're sorry, but you've reached the end of search results.");
+    if (!refs.loadMoreBtnRef.hasAttribute('visually-hidden')) {
+      refs.loadMoreBtnRef.classList.toggle('visually-hidden');
+    }
+    userQuery = '';
+  }
+  refs.formRef.reset();
   await scroll();
 };
 
