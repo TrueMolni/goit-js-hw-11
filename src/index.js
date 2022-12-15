@@ -61,26 +61,27 @@ const getData = async () => {
 // посилаємо запит для отримання даних для галереї карток
 const submitHandle = async event => {
   event.preventDefault();
-  if (refs.queryRef.value === '') {
-    render();
-    refs.loadMoreBtnRef.classList.add('visually-hidden');
-    refs.loadMoreBtnRef.setAttribute('disabled', true);
-    return Notify.failure(' WRONG query');
-  }
   page = 1;
 
-  if (userQuery === '') {
-    render();
-    refs.formRef.reset();
-    return Notify.failure(' WRONG query');
-  }
   // тут робиться весь запит користувача. Записуємо усі дані та
   // додатково записуємо кількість знайдених об'єктів у глобальну змінну
   await getData();
-  if (items.length === 0) {
-    refs.formRef.reset();
+
+  if (refs.queryRef.value === '') {
     render();
-    return ifError;
+    if (!refs.loadMoreBtnRef.classList.contains('visually-hidden')) {
+      refs.loadMoreBtnRef.classList.toggle('visually-hidden');
+    }
+    if (!refs.loadMoreBtnRef.hasAttribute('disabled')) {
+      refs.loadMoreBtnRef.setAttribute('disabled', true);
+    }
+    return Notify.failure(' WRONG query');
+  }
+
+  if (items.length === 0) {
+    render();
+    refs.formRef.reset();
+    return ifError();
   }
 
   render();
@@ -93,8 +94,12 @@ const submitHandle = async event => {
     return;
   }
 
-  refs.loadMoreBtnRef.classList.toggle('visually-hidden');
-  refs.loadMoreBtnRef.removeAttribute('disabled');
+  if (refs.loadMoreBtnRef.classList.contains('visually-hidden')) {
+    refs.loadMoreBtnRef.classList.toggle('visually-hidden');
+  }
+  if (refs.loadMoreBtnRef.hasAttribute('disabled')) {
+    refs.loadMoreBtnRef.removeAttribute('disabled');
+  }
 };
 
 // створення шаблону розмітки карток галереї
@@ -155,8 +160,12 @@ const loadMoreHandle = async () => {
     if (!refs.loadMoreBtnRef.hasAttribute('visually-hidden')) {
       refs.loadMoreBtnRef.classList.toggle('visually-hidden');
     }
+    if (!refs.loadMoreBtnRef.hasAttribute('disabled')) {
+      refs.loadMoreBtnRef.setAttribute('disabled', true);
+    }
     userQuery = '';
   }
+
   refs.formRef.reset();
   await scroll();
 };
