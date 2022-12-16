@@ -1,7 +1,5 @@
 import './css/styles.css';
-// Описаний в документації
 import SimpleLightbox from 'simplelightbox';
-// Додатковий імпорт стилів
 import 'simplelightbox/dist/simple-lightbox.min.css';
 import { Notify } from 'notiflix';
 import axios from 'axios';
@@ -37,10 +35,19 @@ const lightbox = new SimpleLightbox('.gallery a', {
 refs.loadMoreBtnRef.setAttribute('disabled', true);
 refs.loadMoreBtnRef.classList.toggle('visually-hidden');
 
+// перевіряє, чи кнопка прихована. Якщо ні - ховає
+const hideLoadMore = () => {
+  if (!refs.loadMoreBtnRef.classList.contains('visually-hidden')) {
+    refs.loadMoreBtnRef.classList.toggle('visually-hidden');
+  }
+  if (!refs.loadMoreBtnRef.hasAttribute('disabled')) {
+    refs.loadMoreBtnRef.setAttribute('disabled', true);
+  }
+};
+
 // стрілочна функція для перезагрузки кнонтенту галереї
 const render = () => {
   console.log(items);
-
   refs.galleryRef.innerHTML = '';
 };
 
@@ -49,6 +56,8 @@ const queryHandle = event => {
   userQuery = event.target.value.trim();
 };
 
+// робить запит на сервер з потрібними параметрами, отримує масив об'єктів для наших карток
+// додатково записуємо кількість знайдених об'єктів у глобальну змінну
 const getData = async () => {
   const { data } = await axios.get(
     `${BASE_URL}?key=${PIXABAY_KEY}&q=${userQuery}&page=${page}&per_page=${perPage}&image_type=photo&orientation=horizontal&safesearch=true`
@@ -58,42 +67,48 @@ const getData = async () => {
   items = hits;
 };
 
-// посилаємо запит для отримання даних для галереї карток
+// ці ф-ії виводять повідомлення про успіх чи невдачу
+ifSuccess = () => {
+  Notify.success(`Hooray! We found ${total} images.`);
+};
+
+ifError = () => {
+  Notify.failure("We're sorry, but you've reached the end of search results.");
+};
+
+// при сабміті форми викликаємо getData()
 const submitHandle = async event => {
   event.preventDefault();
   page = 1;
 
-  // тут робиться весь запит користувача. Записуємо усі дані та
-  // додатково записуємо кількість знайдених об'єктів у глобальну змінну
-  await getData();
-
-  if (refs.queryRef.value === '') {
+  // перевірка на валідність запиту
+  if (refs.queryRef.value.trim() === '') {
     render();
-    if (!refs.loadMoreBtnRef.classList.contains('visually-hidden')) {
-      refs.loadMoreBtnRef.classList.toggle('visually-hidden');
-    }
-    if (!refs.loadMoreBtnRef.hasAttribute('disabled')) {
-      refs.loadMoreBtnRef.setAttribute('disabled', true);
-    }
+    refs.formRef.reset();
+    hideLoadMore();
     return Notify.failure(' WRONG query');
   }
 
+  await getData();
   if (items.length === 0) {
     render();
     refs.formRef.reset();
+    hideLoadMore();
     return ifError();
   }
 
+  //
   render();
   createGallery();
   lightbox.refresh();
-  ifSuccess();
   refs.formRef.reset();
-  if (total < 40) {
-    userQuery = '';
+  ifSuccess();
+
+  // якщо запит успішний, але колекція повністю поміщується на одній сторінці код нище не виконується
+  if (total <= perPage) {
     return;
   }
-
+  // перестаємо ховати кнопку LoadMore
   if (refs.loadMoreBtnRef.classList.contains('visually-hidden')) {
     refs.loadMoreBtnRef.classList.toggle('visually-hidden');
   }
@@ -142,36 +157,8 @@ function createGallery() {
   refs.galleryRef.insertAdjacentHTML('beforeend', markup.join(''));
 }
 
-// обробка запиту користувача для довантаження додаткових карток
-const loadMoreHandle = async () => {
-  // якщо нема даних для довантаження ховаэмо кнопку і виводимо повідомлення
-
-  page += 1;
-  await getData();
-  console.log(items);
-
-  // якщо запит успішний додаємо до розмітки карток без її очищення
-  // скролимо до нових карток
-  createGallery();
-  lightbox.refresh();
-
-  if (page >= total / 40) {
-    Notify.info("We're sorry, but you've reached the end of search results.");
-    if (!refs.loadMoreBtnRef.hasAttribute('visually-hidden')) {
-      refs.loadMoreBtnRef.classList.toggle('visually-hidden');
-    }
-    if (!refs.loadMoreBtnRef.hasAttribute('disabled')) {
-      refs.loadMoreBtnRef.setAttribute('disabled', true);
-    }
-    userQuery = '';
-  }
-
-  refs.formRef.reset();
-  await scroll();
-};
-
 // опрацьовуємо скрол при довантаженні карток
-function scroll() {
+scroll = () => {
   const { height: cardHeight } =
     refs.galleryRef.firstElementChild.getBoundingClientRect();
 
@@ -179,19 +166,32 @@ function scroll() {
     top: cardHeight * 2,
     behavior: 'smooth',
   });
-}
+};
+
+// обробка запиту користувача для довантаження додаткових карток
+const loadMoreHandle = async () => {
+  page += 1;
+  await getData();
+  console.log(items);
+
+  // якщо запит успішний додаємо до розмітки карток без її очищення
+
+  createGallery();
+  lightbox.refresh();
+  refs.formRef.reset();
+
+  // якщо дійшли до кінця колекції ховаємо кнопку loadMore
+  if (page >= total / perPage) {
+    Notify.info("We're sorry, but you've reached the end of search results.");
+    hideLoadMore();
+  }
+
+  // скролимо до нових карток
+  await scroll();
+};
 
 // підписуємось на слухача події інпуту, для опрацювання тексту користувача
 // а також до кнопок, для опрацьовування їх подій
 refs.queryRef.addEventListener('input', queryHandle);
 refs.submitBtnRef.addEventListener('click', submitHandle);
 refs.loadMoreBtnRef.addEventListener('click', loadMoreHandle);
-
-// ці ф-ії виводять повідомлення про успіх чи невдачу
-function ifSuccess() {
-  Notify.success(`Hooray! We found ${total} images.`);
-}
-
-function ifError() {
-  Notify.failure("We're sorry, but you've reached the end of search results.");
-}
