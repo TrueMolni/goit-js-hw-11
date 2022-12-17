@@ -68,11 +68,11 @@ const getData = async () => {
 };
 
 // ці ф-ії виводять повідомлення про успіх чи невдачу
-ifSuccess = () => {
+const ifSuccess = () => {
   Notify.success(`Hooray! We found ${total} images.`);
 };
 
-ifError = () => {
+const ifError = () => {
   Notify.failure("We're sorry, but you've reached the end of search results.");
 };
 
